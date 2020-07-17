@@ -58,17 +58,11 @@ public final class JsonCommunicators {
 	}
 	
 	public static JsonCommunicator<?> newInstance(JsonCommunicatorConfig config) {
-		
-		//TODO
-		
-		return null;
+		return new JsonHubCommunicator<Object>(config);
 	}
 	
 	public static <T> JsonCommunicator<T> newInstance(JsonCommunicatorConfig config, Class<T> classOfT) {
-		
-		//TODO
-		
-		return null;
+		return new JsonHubCommunicator<T>(config, classOfT);
 	}
 	
 	public static JsonCommunicator<?> open(JsonCommunicatorConfig config) throws IOException {

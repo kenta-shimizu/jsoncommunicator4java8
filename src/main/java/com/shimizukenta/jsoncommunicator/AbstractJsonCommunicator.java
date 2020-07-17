@@ -304,7 +304,7 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 								byte b = buffer.get();
 								if ( b == DELIMITER ) {
 									byte[] bs = baos.toByteArray();
-									putReceivedBytes(bs);
+									putReceivedBytes(channel, bs);
 									baos.reset();
 								} else {
 									baos.write(b);
@@ -332,7 +332,7 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 		};
 	}
 	
-	abstract protected void putReceivedBytes(byte[] bs);
+	abstract protected void putReceivedBytes(AsynchronousSocketChannel channel, byte[] bs);
 	
 	private final Object syncSend = new Object();
 	
@@ -458,6 +458,7 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 	
 	abstract protected byte[] createBytesFromPojo(Object pojo) throws JsonCommunicatorParseException;
 	
+	
 	private final Collection<JsonCommunicatorJsonReceivedListener> recvJsonLstnrs = new CopyOnWriteArrayList<>();
 	
 	@Override
@@ -468,6 +469,18 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 	@Override
 	public boolean removeJsonReceivedListener(JsonCommunicatorJsonReceivedListener l) {
 		return recvJsonLstnrs.remove(l);
+	}
+	
+	private final Collection<JsonCommunicatorJsonReceivedBiListener> recvJsonBiLstnrs = new CopyOnWriteArrayList<>();
+	
+	@Override
+	public boolean addJsonReceivedListener(JsonCommunicatorJsonReceivedBiListener l) {
+		return recvJsonBiLstnrs.add(l);
+	}
+	
+	@Override
+	public boolean removeJsonReceivedListener(JsonCommunicatorJsonReceivedBiListener l) {
+		return recvJsonBiLstnrs.remove(l);
 	}
 	
 	private class RecvJsonPack {
@@ -485,6 +498,9 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 		return createLoopTask(() -> {
 			final RecvJsonPack p = recvJsonPackQueue.take();
 			recvJsonLstnrs.forEach(l -> {
+				l.receive(p.json);
+			});
+			recvJsonBiLstnrs.forEach(l -> {
 				l.receive(p.channel, p.json);
 			});
 		});
@@ -504,6 +520,16 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 		return recvPojoLstnrs.remove(l);
 	}
 	
+	private final Collection<JsonCommunicatorPojoReceivedBiListener<T>> recvPojoBiLstnrs = new CopyOnWriteArrayList<>();
+	
+	public boolean addPojoReceivedListener(JsonCommunicatorPojoReceivedBiListener<T> l) {
+		return recvPojoBiLstnrs.add(l);
+	}
+	
+	public boolean removePojoReceivedListener(JsonCommunicatorPojoReceivedBiListener<T> l) {
+		return recvPojoBiLstnrs.remove(l);
+	}
+	
 	private class RecvPojoPack {
 		private final AsynchronousSocketChannel channel;
 		private final T pojo;
@@ -519,6 +545,9 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 		return createLoopTask(() -> {
 			final RecvPojoPack p = recvPojoQueue.take();
 			recvPojoLstnrs.forEach(l -> {
+				l.receive(p.pojo);
+			});
+			recvPojoBiLstnrs.forEach(l -> {
 				l.receive(p.channel, p.pojo);
 			});
 		});
@@ -540,9 +569,24 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 		return stateChangedLstnrs.remove(l);
 	}
 	
+	private final Collection<JsonCommunicatorConnectionStateChangedBiListener> stateChangedBiLstnrs = new CopyOnWriteArrayList<>();
+	
+	@Override
+	public boolean addConnectionStateChangedListener(JsonCommunicatorConnectionStateChangedBiListener l) {
+		return stateChangedBiLstnrs.add(l);
+	}
+	
+	@Override
+	public boolean removeConnectionStateChangedListener(JsonCommunicatorConnectionStateChangedBiListener l) {
+		return stateChangedBiLstnrs.remove(l);
+	}
+	
 	protected void stateChanged(AsynchronousSocketChannel channel, JsonCommunicatorConnectionState state) {
 		stateChangedLstnrs.forEach(l -> {
-			l.put(channel, state);
+			l.changed(state);
+		});
+		stateChangedBiLstnrs.forEach(l -> {
+			l.changed(channel, state);
 		});
 	}
 	
