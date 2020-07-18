@@ -371,22 +371,24 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 	private void send(Collection<AsynchronousSocketChannel> channels, CharSequence json) throws InterruptedException, IOException {
 		if ( json != null ) {
 			byte[] bs = json.toString().getBytes(StandardCharsets.UTF_8);
-			send(channels,bs);
+			send(channels,bs, json);
 		}
 	}
 	
 	private void send(Collection<AsynchronousSocketChannel> channels, Object pojo) throws InterruptedException, IOException, JsonCommunicatorParseException {
 		byte[] bs = createBytesFromPojo(pojo);
-		send(channels, bs);
+		send(channels, bs, pojo);
 	}
 	
-	private void send(Collection<AsynchronousSocketChannel> channels, byte[] bs) throws InterruptedException, IOException {
+	private void send(Collection<AsynchronousSocketChannel> channels, byte[] bs, Object toLog) throws InterruptedException, IOException {
 		
 		final Collection<Callable<Object>> tasks = channels.stream()
 				.map(ch -> createSendTask(ch, bs))
 				.collect(Collectors.toList());
 		
 		final List<Future<Object>> results = execServ.invokeAll(tasks);
+		
+		putLog("sended", String.valueOf(toLog));
 		
 		IOException ioExcept = null;
 		
@@ -483,12 +485,24 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 		return recvJsonBiLstnrs.remove(l);
 	}
 	
+	private static final String BR = System.lineSeparator();
+	
 	private class RecvJsonPack {
 		private final AsynchronousSocketChannel channel;
 		private final String json;
 		private RecvJsonPack(AsynchronousSocketChannel channel, String json) {
 			this.channel = channel;
 			this.json = json;
+		}
+		
+		@Override
+		public String toString() {
+			try {
+				return "from " + channel.getRemoteAddress().toString() + BR + json;
+			}
+			catch ( IOException giveup) {
+				return json;
+			}
 		}
 	}
 	
@@ -507,7 +521,9 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 	}
 	
 	protected void receiveJson(AsynchronousSocketChannel channel, String json) {
-		recvJsonPackQueue.offer(new RecvJsonPack(channel, json));
+		RecvJsonPack p = new RecvJsonPack(channel, json);
+		recvJsonPackQueue.offer(p);
+		putLog("receive", p);
 	}
 	
 	private final Collection<JsonCommunicatorPojoReceivedListener<T>> recvPojoLstnrs = new CopyOnWriteArrayList<>();
