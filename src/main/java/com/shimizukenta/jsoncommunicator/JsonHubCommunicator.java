@@ -1,22 +1,36 @@
 package com.shimizukenta.jsoncommunicator;
 
+import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.util.Collection;
+import java.util.function.BiConsumer;
 
 import com.shimizukenta.jsonhub.JsonHub;
 import com.shimizukenta.jsonhub.JsonHubParseException;
 
 public class JsonHubCommunicator<T> extends AbstractJsonCommunicator<T> {
 	
-	private final Class<T> classOfT;
+	private final BiConsumer<AsynchronousSocketChannel, JsonHub> biconsumer;
 	
 	protected JsonHubCommunicator(JsonCommunicatorConfig config) {
 		super(config);
-		this.classOfT = null;
+		
+		this.biconsumer = (channel, jh) -> {
+			/* Nothing */
+		};
 	}
 	
 	protected JsonHubCommunicator(JsonCommunicatorConfig config, Class<T> classOfT) {
 		super(config);
-		this.classOfT = classOfT;
+		
+		this.biconsumer = (channel, jh) -> {
+			try {
+				receivePojo(channel, jh.toPojo(classOfT));
+			}
+			catch ( JsonHubParseException e ) {
+				putLog(e);
+			}
+		};
 	}
 
 	@Override
@@ -25,9 +39,7 @@ public class JsonHubCommunicator<T> extends AbstractJsonCommunicator<T> {
 		try {
 			JsonHub jh = JsonHub.fromBytes(bs);
 			receiveJson(channel, jh.toJson());
-			if ( this.classOfT != null ) {
-				receivePojo(channel, jh.toPojo(classOfT));
-			}
+			biconsumer.accept(channel, jh);
 		}
 		catch ( JsonHubParseException e ) {
 			putLog(e);
@@ -43,5 +55,19 @@ public class JsonHubCommunicator<T> extends AbstractJsonCommunicator<T> {
 			throw new JsonCommunicatorParseException(e);
 		}
 	}
+	
+	@Override
+	protected void send(Collection<AsynchronousSocketChannel> channels, Object pojo) throws InterruptedException, IOException, JsonCommunicatorParseException {
+		try {
+			JsonHub jh = JsonHub.fromPojo(pojo);
+			byte[] bs = jh.getBytesExcludedNullValueInObject();
+			String json = jh.toJsonExcludedNullValueInObject();
+			send(channels, bs, json);
+		}
+		catch ( JsonHubParseException e ) {
+			throw new JsonCommunicatorParseException(e);
+		}
+	}
+
 
 }

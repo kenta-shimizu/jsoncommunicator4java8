@@ -9,6 +9,7 @@ import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -25,7 +26,8 @@ import java.util.stream.Collectors;
 
 public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T> {
 	
-	private static final byte DELIMITER = (byte)0x0;
+	protected static final byte DELIMITER = (byte)0x0;
+	protected static final String BR = System.lineSeparator();
 	
 	private final ExecutorService execServ = Executors.newCachedThreadPool(r -> {
 		Thread th = new Thread(r);
@@ -368,34 +370,39 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 		}
 	}
 	
-	private void send(Collection<AsynchronousSocketChannel> channels, CharSequence json) throws InterruptedException, IOException {
+	protected void send(Collection<AsynchronousSocketChannel> channels, CharSequence json) throws InterruptedException, IOException {
 		if ( json != null ) {
 			byte[] bs = json.toString().getBytes(StandardCharsets.UTF_8);
 			send(channels,bs, json);
 		}
 	}
 	
-	private void send(Collection<AsynchronousSocketChannel> channels, Object pojo) throws InterruptedException, IOException, JsonCommunicatorParseException {
+	protected void send(Collection<AsynchronousSocketChannel> channels, Object pojo) throws InterruptedException, IOException, JsonCommunicatorParseException {
 		byte[] bs = createBytesFromPojo(pojo);
 		send(channels, bs, pojo);
 	}
 	
-	private void send(Collection<AsynchronousSocketChannel> channels, byte[] bs, Object toLog) throws InterruptedException, IOException {
+	protected void send(Collection<AsynchronousSocketChannel> channels, byte[] bs, Object toLog) throws InterruptedException, IOException {
 		
-		final Collection<Callable<Object>> tasks = channels.stream()
+		final Collection<Callable<AsynchronousSocketChannel>> tasks = channels.stream()
 				.map(ch -> createSendTask(ch, bs))
 				.collect(Collectors.toList());
 		
-		final List<Future<Object>> results = execServ.invokeAll(tasks);
-		
-		putLog("sended", String.valueOf(toLog));
+		final List<Future<AsynchronousSocketChannel>> results = execServ.invokeAll(tasks);
 		
 		IOException ioExcept = null;
 		
-		for ( Future<Object> f : results ) {
+		List<String> toAddrs = new ArrayList<>();
+		
+		for ( Future<AsynchronousSocketChannel> f : results ) {
 			
 			try {
-				f.get();
+				AsynchronousSocketChannel ch = f.get();
+				String toAddr = ch.getRemoteAddress().toString();
+				toAddrs.add(toAddr);
+			}
+			catch ( IOException e ) {
+				putLog(e);
 			}
 			catch ( ExecutionException e ) {
 				Throwable t = e.getCause();
@@ -406,17 +413,20 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 			}
 		}
 		
+		String logValue = "to [" + toAddrs.stream().collect(Collectors.joining(", ")) + "]" + BR + String.valueOf(toLog);
+		putLog("sended", logValue);
+		
 		if ( ioExcept != null ) {
 			throw ioExcept;
 		}
 	}
 	
-	private Callable<Object> createSendTask(AsynchronousSocketChannel channel, byte[] bs) {
+	private Callable<AsynchronousSocketChannel> createSendTask(AsynchronousSocketChannel channel, byte[] bs) {
 		
-		return new Callable<Object>() {
+		return new Callable<AsynchronousSocketChannel>() {
 			
 			@Override
-			public Object call() throws Exception {
+			public AsynchronousSocketChannel call() throws Exception {
 				
 				final ByteBuffer buffer = ByteBuffer.allocate(bs.length + 1);
 				buffer.put(bs);
@@ -432,7 +442,7 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 							int w = f.get().intValue();
 							
 							if ( w <= 0 ) {
-								return null;
+								return channel;
 							}
 						}
 						catch ( InterruptedException e ) {
@@ -445,7 +455,7 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 								throw (Exception)t;
 							} else {
 								putLog(t);
-								return null;
+								return channel;
 							}
 						}
 					}
@@ -453,7 +463,7 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 				catch ( InterruptedException ignore ) {
 				}
 				
-				return null;
+				return channel;
 			}
 		};
 	}
@@ -484,8 +494,6 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 	public boolean removeJsonReceivedListener(JsonCommunicatorJsonReceivedBiListener l) {
 		return recvJsonBiLstnrs.remove(l);
 	}
-	
-	private static final String BR = System.lineSeparator();
 	
 	private class RecvJsonPack {
 		private final AsynchronousSocketChannel channel;

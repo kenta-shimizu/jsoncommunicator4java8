@@ -8,8 +8,6 @@ import com.shimizukenta.jsoncommunicator.JsonCommunicator;
 import com.shimizukenta.jsoncommunicator.JsonCommunicatorParseException;
 import com.shimizukenta.jsoncommunicator.JsonCommunicators;
 
-import example3.Example3;
-
 public class Example4 {
 	
 	public String name;
@@ -50,7 +48,7 @@ public class Example4 {
 							
 							for ( ;; ) {
 								Thread.sleep(1000L);
-								pojo.count ++;
+								++ pojo.count;
 								server.send(channel, pojo);
 							}
 						}
