@@ -2,13 +2,16 @@ package com.shimizukenta.jsoncommunicator;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.io.StringWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.Optional;
 
-public class JsonCommunicatorLog {
+public class JsonCommunicatorLog implements Serializable {
+	
+	private static final long serialVersionUID = 3168528785591981508L;
 	
 	private static final String BR = System.lineSeparator();
 	private static final String SPACE = " ";

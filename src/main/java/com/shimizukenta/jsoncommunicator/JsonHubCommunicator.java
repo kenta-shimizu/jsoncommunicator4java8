@@ -28,7 +28,7 @@ public class JsonHubCommunicator<T> extends AbstractJsonCommunicator<T> {
 				receivePojo(channel, jh.toPojo(classOfT));
 			}
 			catch ( JsonHubParseException e ) {
-				putLog(e);
+				notifyLog(e);
 			}
 		};
 	}
@@ -42,7 +42,7 @@ public class JsonHubCommunicator<T> extends AbstractJsonCommunicator<T> {
 			biconsumer.accept(channel, jh);
 		}
 		catch ( JsonHubParseException e ) {
-			putLog(e);
+			notifyLog(e);
 		}
 	}
 	

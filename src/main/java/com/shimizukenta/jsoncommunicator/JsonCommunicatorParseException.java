@@ -2,9 +2,6 @@ package com.shimizukenta.jsoncommunicator;
 
 public class JsonCommunicatorParseException extends Exception {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 3456798094241076629L;
 	
 	public JsonCommunicatorParseException() {

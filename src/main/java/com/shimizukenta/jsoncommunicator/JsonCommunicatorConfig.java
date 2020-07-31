@@ -1,12 +1,17 @@
 package com.shimizukenta.jsoncommunicator;
 
+import java.io.Serializable;
 import java.net.SocketAddress;
 import java.util.Collections;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-public class JsonCommunicatorConfig {
-
+public class JsonCommunicatorConfig implements Serializable {
+	
+	private static final long serialVersionUID = 5336238572932335370L;
+	
 	public static final float REBIND_SECONDS = 10.0F;
 	public static final float RECONNECT_SECONDS = 10.0F;
 	
@@ -14,10 +19,12 @@ public class JsonCommunicatorConfig {
 	private final Set<SocketAddress> connects = new CopyOnWriteArraySet<>();
 	private float rebindSeconds;
 	private float reconnectSeconds;
+	private String logSubjectHeader;
 	
 	public JsonCommunicatorConfig() {
 		this.rebindSeconds = REBIND_SECONDS;
 		this.reconnectSeconds = RECONNECT_SECONDS;
+		this.logSubjectHeader = "";
 	}
 	
 	public Set<SocketAddress> binds() {
@@ -41,19 +48,19 @@ public class JsonCommunicatorConfig {
 	}
 	
 	public boolean addBind(SocketAddress addr) {
-		return binds.add(addr);
+		return binds.add(Objects.requireNonNull(addr));
 	}
 	
 	public boolean removeBind(SocketAddress addr) {
-		return binds.remove(addr);
+		return binds.remove(Objects.requireNonNull(addr));
 	}
 	
 	public boolean addConnect(SocketAddress addr) {
-		return connects.add(addr);
+		return connects.add(Objects.requireNonNull(addr));
 	}
 	
 	public boolean removeConnect(SocketAddress addr) {
-		return connects.remove(addr);
+		return connects.remove(Objects.requireNonNull(addr));
 	}
 	
 	public void rebindSeconds(float v) {
@@ -65,6 +72,18 @@ public class JsonCommunicatorConfig {
 	public void reconnectSeconds(float v) {
 		synchronized ( this ) {
 			this.reconnectSeconds = v;
+		}
+	}
+	
+	public void logSubjectHeader(CharSequence cs) {
+		synchronized ( this ) {
+			this.logSubjectHeader = Objects.requireNonNull(cs).toString();
+		}
+	}
+	
+	public Optional<String> logSubjectHeader() {
+		synchronized ( this ) {
+			return this.logSubjectHeader.isEmpty() ? Optional.empty() : Optional.of(this.logSubjectHeader);
 		}
 	}
 	
