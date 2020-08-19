@@ -415,15 +415,18 @@ public class JsonHubJsonParser {
 	
 	private static SeekCharResult seekNextChar(String str, int fromIndex) {
 		
-		for (int i = fromIndex, len = str.length(); i < len; ++i) {
-			
-			char c = str.charAt(i);
-			
-			if ( c > C_WS_MAX ) {
-				return new SeekCharResult(c, i);
+		if ( fromIndex >= 0 ) {
+
+			for (int i = fromIndex, len = str.length(); i < len; ++i) {
+				
+				char c = str.charAt(i);
+				
+				if ( c > C_WS_MAX ) {
+					return new SeekCharResult(c, i);
+				}
 			}
 		}
-		
+
 		return new SeekCharResult(C_WS_MAX, -1);
 	}
 	
@@ -435,14 +438,17 @@ public class JsonHubJsonParser {
 	
 	private static SeekCharResult seekNextEndDelimiter(String str, int fromIndex) {
 		
-		for (int i = fromIndex, len = str.length(); i < len; ++i) {
-			
-			char c = str.charAt(i);
-			
-			for (JsonStructuralChar d : delimiters ) {
+		if ( fromIndex >= 0 ) {
+
+			for (int i = fromIndex, len = str.length(); i < len; ++i) {
 				
-				if ( d.match(c) ) {
-					return new SeekCharResult(c, i);
+				char c = str.charAt(i);
+				
+				for (JsonStructuralChar d : delimiters ) {
+					
+					if ( d.match(c) ) {
+						return new SeekCharResult(c, i);
+					}
 				}
 			}
 		}
