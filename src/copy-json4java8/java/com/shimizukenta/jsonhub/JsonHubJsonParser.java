@@ -30,7 +30,14 @@ public class JsonHubJsonParser {
 	public AbstractJsonHub parse(CharSequence cs) {
 		
 		try {
-			return fromJson(cs.toString());
+			
+			String s = cs.toString();
+			
+			if ( s.trim().isEmpty() ) {
+				throw new JsonHubParseException("JSON is empty");
+			}
+			
+			return fromJson(s);
 		}
 		catch ( JsonHubIndexOutOfBoundsException | JsonHubNumberFormatException e ) {
 			throw new JsonHubParseException(e);
@@ -139,7 +146,14 @@ public class JsonHubJsonParser {
 		
 		if ( r.index < 0 ) {
 			
-			s = str.substring(fromIndex).trim();
+			if ( fromIndex >= 0 ) {
+				
+				s = str.substring(fromIndex).trim();
+			
+			} else {
+				
+				throw new JsonHubIndexOutOfBoundsException();
+			}
 			
 		} else {
 			
@@ -416,7 +430,7 @@ public class JsonHubJsonParser {
 	private static SeekCharResult seekNextChar(String str, int fromIndex) {
 		
 		if ( fromIndex >= 0 ) {
-
+			
 			for (int i = fromIndex, len = str.length(); i < len; ++i) {
 				
 				char c = str.charAt(i);
@@ -426,7 +440,7 @@ public class JsonHubJsonParser {
 				}
 			}
 		}
-
+		
 		return new SeekCharResult(C_WS_MAX, -1);
 	}
 	
@@ -439,7 +453,7 @@ public class JsonHubJsonParser {
 	private static SeekCharResult seekNextEndDelimiter(String str, int fromIndex) {
 		
 		if ( fromIndex >= 0 ) {
-
+			
 			for (int i = fromIndex, len = str.length(); i < len; ++i) {
 				
 				char c = str.charAt(i);
