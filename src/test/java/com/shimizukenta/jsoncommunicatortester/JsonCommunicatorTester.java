@@ -4,19 +4,21 @@ import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import com.shimizukenta.jsoncommunicator.JsonCommunicator;
 import com.shimizukenta.jsoncommunicator.JsonCommunicators;
@@ -31,7 +33,9 @@ public final class JsonCommunicatorTester implements Closeable {
 		return th;
 	});
 	
-	private final Map<String, String> jsonMap = new HashMap<>();
+	private final RequestCommandParser commandParser = RequestCommandParser.getInstance();
+	
+	private final Map<String, JsonHub> jsonMap = new ConcurrentHashMap<>();
 	
 	private final JsonCommunicatorTesterConfig config;
 	
@@ -64,6 +68,8 @@ public final class JsonCommunicatorTester implements Closeable {
 		execServ.execute(this.createInpuTask());
 		
 		config.jsonPaths().forEach(this::readJson);
+		
+		notifyLog("Start-Communicator");
 		
 		if ( config.autoOpen() ) {
 			
@@ -140,12 +146,21 @@ public final class JsonCommunicatorTester implements Closeable {
 		}
 	}
 	
+	private static final String readFileExtension = ".json";
+	
 	private void readJson(Path path) {
 		
 		try {
 			if ( Files.isDirectory(path) ) {
 				
-				//TODO
+				try (
+						DirectoryStream<Path> ds = Files.newDirectoryStream(path);
+						) {
+					
+					for ( Path p : ds ) {
+						readJsonFile(p);
+					}
+				}
 				
 			} else {
 				
@@ -159,7 +174,19 @@ public final class JsonCommunicatorTester implements Closeable {
 	
 	private void readJsonFile(Path path) throws IOException {
 		
-		String json = JsonHub.fromFile(path).toJson();
+		String fileName = path.getFileName().toString();
+		
+		if ( fileName.endsWith(readFileExtension) ) {
+			
+			String key = fileName.substring(0, fileName.length() - readFileExtension.length());
+			
+			if ( ! key.trim().isEmpty() ) {
+				
+				JsonHub jh = JsonHub.fromFile(path);
+				
+				jsonMap.put(key, jh);
+			}
+		}
 	}
 	
 	private Runnable createInpuTask() {
@@ -180,17 +207,28 @@ public final class JsonCommunicatorTester implements Closeable {
 						Collection<Callable<Void>> tasks = Arrays.asList(() -> {
 							
 							try {
-								RequestCommandParser parser = RequestCommandParser.getInstance();
 								
 								for ( ;; ) {
+									String line = br.readLine();
 									
-									RequestCommand r = parser.parse(br.readLine());
+									if ( line == null ) {
+										break;
+									}
 									
-									//TODO
+									if ( line.trim().isEmpty() ) {
+										continue;
+									}
 									
+									RequestCommand r = commandParser.parse(line);
+									
+									if ( executeCommand(r) ) {
+										break;
+									}
 								}
 							}
 							catch ( IOException giveup) {
+							}
+							catch ( InterruptedException ignore ) {
 							}
 							
 							return null;
@@ -207,8 +245,128 @@ public final class JsonCommunicatorTester implements Closeable {
 				}
 				catch ( InterruptedException ignore ) {
 				}
+				
+				synchronized ( JsonCommunicatorTester.class ) {
+					JsonCommunicatorTester.class.notifyAll();
+				}
 			}
 		};
+	}
+	
+	private static final String BR = System.lineSeparator();
+	
+	/**
+	 * 
+	 * @param req
+	 * @return true if quit
+	 * @throws InterruptedException
+	 */
+	private boolean executeCommand(RequestCommand req) throws InterruptedException {
+		
+		try {
+			
+			switch ( req.command() ) {
+			case MANUAL: {
+				
+				String option = req.option(0).orElse(null);
+				
+				if ( option == null ) {
+					
+					notifyLog(commandParser.getCommandsManual());
+					
+				} else {
+					
+					notifyLog(commandParser.getCommandDetailManual(option));
+				}
+				
+				return false;
+				/* break; */
+			}
+			case QUIT: {
+				return true;
+				/* break; */
+			}
+			case OPEN: {
+				this.openCommunicator();
+				return false;
+				/* break; */
+			}
+			case CLOSE: {
+				this.closeCommunicator();
+				return false;
+				/* break; */
+			}
+			case LIST: {
+				
+				String s = jsonMap.keySet().stream()
+						.sorted()
+						.collect(Collectors.joining(BR));
+				
+				notifyLog(s);
+				return false;
+				/* break; */
+			}
+			case SHOW: {
+				
+				String key = req.option(0).orElse(null);
+				if ( key != null ) {
+					
+					JsonHub jh = jsonMap.get(key);
+					
+					if ( jh == null ) {
+						
+						notifyLog("\"" + key + "\" is not read.");
+						
+					} else {
+						
+						notifyLog(jh.prettyPrint());
+					}
+				}
+				return false;
+				/* break; */
+			}
+			case SEND: {
+				
+				String key = req.option(0).orElse(null);
+				if ( key != null ) {
+					
+					synchronized ( this ) {
+						
+						if ( jsonComm != null && jsonComm.isOpen() ) {
+							
+							JsonHub jh = jsonMap.get(key);
+							
+							if ( jh == null ) {
+								
+								notifyLog("\"" + key + "\" is not read.");
+								
+							} else {
+								
+								jsonComm.send(jh.toJson());
+							}
+							
+						} else {
+						
+							notifyLog("Communicator not opened.");
+						}
+					}
+				}
+				return false;
+				/* break; */
+			}
+			default: {
+				
+				/* Nothing */
+				return false;
+				/* break; */
+			}
+			}
+		}
+		catch ( IOException | JsonHubParseException e ) {
+			notifyLog(e);
+		}
+		
+		return false;
 	}
 	
 	private interface InterruptedRunnable {

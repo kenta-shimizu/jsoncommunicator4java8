@@ -44,7 +44,28 @@ public final class JsonCommunicatorTesterConfig implements Serializable {
 	
 	private void setByJson(JsonHub jh) throws IOException {
 		
-		//TODO
+		jh.getOrDefault("connects").forEach(op -> {
+			op.optionalString()
+			.map(s -> parseSocketAddress(s))
+			.ifPresent(this.commConf::addConnect);
+		});
+		
+		jh.getOrDefault("binds").forEach(op -> {
+			op.optionalString()
+			.map(s -> parseSocketAddress(s))
+			.ifPresent(this.commConf::addBind);
+		});
+		
+		jh.getOrDefault("jsonPaths").forEach(op -> {
+			op.optionalString()
+			.map(Paths::get)
+			.ifPresent(this.jsonPaths::add);
+		});
+		
+		jh.getOrDefault("autoOpen").optionalBoolean()
+		.ifPresent(f -> {
+			this.autoOpen = f.booleanValue();
+		});
 	}
 	
 	public static JsonCommunicatorTesterConfig get(String[] args) throws IOException {

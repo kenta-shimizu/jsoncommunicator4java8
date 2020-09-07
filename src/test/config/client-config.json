@@ -1,0 +1,16 @@
+{
+    "connects": [
+        "127.0.0.1:10000"
+    ],
+
+    "binds": [
+
+    ],
+
+    "jsonPaths": [
+        "/path/to/jsons/directory",
+        "/path/to/file.json"
+    ],
+
+    "autoOpen": false
+}
