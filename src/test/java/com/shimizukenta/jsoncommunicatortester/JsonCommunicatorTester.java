@@ -7,13 +7,9 @@ import java.io.InputStreamReader;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -32,8 +28,6 @@ public final class JsonCommunicatorTester implements Closeable {
 		th.setDaemon(true);
 		return th;
 	});
-	
-	private final RequestCommandParser commandParser = RequestCommandParser.getInstance();
 	
 	private final Map<String, JsonHub> jsonMap = new ConcurrentHashMap<>();
 	
@@ -65,7 +59,6 @@ public final class JsonCommunicatorTester implements Closeable {
 		}
 		
 		execServ.execute(this.createLogQueueTask());
-		execServ.execute(this.createInpuTask());
 		
 		config.jsonPaths().forEach(this::readJson);
 		
@@ -189,81 +182,21 @@ public final class JsonCommunicatorTester implements Closeable {
 		}
 	}
 	
-	private Runnable createInpuTask() {
-		
-		return new Runnable() {
-			
-			@Override
-			public void run() {
-				
-				try (
-						InputStreamReader isr = new InputStreamReader(System.in);
-						) {
-					
-					try (
-							BufferedReader br = new BufferedReader(isr);
-							) {
-						
-						Collection<Callable<Void>> tasks = Arrays.asList(() -> {
-							
-							try {
-								
-								for ( ;; ) {
-									String line = br.readLine();
-									
-									if ( line == null ) {
-										break;
-									}
-									
-									if ( line.trim().isEmpty() ) {
-										continue;
-									}
-									
-									RequestCommand r = commandParser.parse(line);
-									
-									if ( executeCommand(r) ) {
-										break;
-									}
-								}
-							}
-							catch ( IOException giveup) {
-							}
-							catch ( InterruptedException ignore ) {
-							}
-							
-							return null;
-						});
-						
-						execServ.invokeAny(tasks);
-					}
-				}
-				catch ( IOException e) {
-					notifyLog(e);
-				}
-				catch ( ExecutionException e ) {
-					notifyLog(e.getCause());
-				}
-				catch ( InterruptedException ignore ) {
-				}
-				
-				synchronized ( JsonCommunicatorTester.class ) {
-					JsonCommunicatorTester.class.notifyAll();
-				}
-			}
-		};
-	}
 	
 	private static final String BR = System.lineSeparator();
+	private final RequestCommandParser commandParser = RequestCommandParser.getInstance();
 	
 	/**
 	 * 
-	 * @param req
+	 * @param commandLine
 	 * @return true if quit
 	 * @throws InterruptedException
 	 */
-	private boolean executeCommand(RequestCommand req) throws InterruptedException {
+	private boolean executeCommandLine(String commandLine) throws InterruptedException {
 		
 		try {
+			
+			RequestCommand req = commandParser.parse(commandLine);
 			
 			switch ( req.command() ) {
 			case MANUAL: {
@@ -426,11 +359,33 @@ public final class JsonCommunicatorTester implements Closeable {
 				
 				inst.open();
 				
-				synchronized ( JsonCommunicatorTester.class ) {
-					JsonCommunicatorTester.class.wait();
+				try (
+						InputStreamReader isr = new InputStreamReader(System.in);
+						) {
+					
+					try (
+							BufferedReader br = new BufferedReader(isr);
+							) {
+						
+						for ( ;; ) {
+							String line = br.readLine();
+							
+							if ( line == null ) {
+								break;
+							}
+							
+							if ( line.trim().isEmpty() ) {
+								continue;
+							}
+							
+							if ( inst.executeCommandLine(line) ) {
+								break;
+							}
+						}
+					}
+					catch ( InterruptedException ignore ) {
+					}
 				}
-			}
-			catch ( InterruptedException ignore ) {
 			}
 		}
 		catch ( Throwable t ) {
