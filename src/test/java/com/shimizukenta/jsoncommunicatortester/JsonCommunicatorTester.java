@@ -302,11 +302,11 @@ public final class JsonCommunicatorTester implements Closeable {
 		return false;
 	}
 	
-	private interface InterruptedRunnable {
+	private interface InterruptableRunnable {
 		public void run() throws InterruptedException;
 	}
 	
-	private Runnable createLoopTask(InterruptedRunnable r) {
+	private Runnable createLoopTask(InterruptableRunnable r) {
 		
 		return new Runnable() {
 			
