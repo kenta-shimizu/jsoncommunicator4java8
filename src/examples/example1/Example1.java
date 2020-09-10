@@ -21,7 +21,7 @@ public class Example1 {
 				JsonCommunicator<?> server = JsonCommunicators.openServer(addr);
 				) {
 			
-			server.addJsonReceivedListener(json -> {
+			server.addJsonReceiveListener(json -> {
 				System.out.println("receive: \"" + json + "\"");
 			});
 			

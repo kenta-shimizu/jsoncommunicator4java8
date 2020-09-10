@@ -2,6 +2,6 @@ package com.shimizukenta.jsoncommunicator;
 
 import java.util.EventListener;
 
-public interface JsonCommunicatorConnectionStateChangedListener extends EventListener {
+public interface JsonCommunicatorConnectionStateChangeListener extends EventListener {
 	public void changed(JsonCommunicatorConnectionState state);
 }

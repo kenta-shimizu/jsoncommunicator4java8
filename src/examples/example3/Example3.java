@@ -33,7 +33,7 @@ public class Example3 {
 				JsonCommunicator<Example3> server = JsonCommunicators.openServer(addr, Example3.class);
 				) {
 			
-			server.addPojoReceivedListener(pojo -> {
+			server.addPojoReceiveListener(pojo -> {
 				System.out.println("receive: " + pojo);
 			});
 			

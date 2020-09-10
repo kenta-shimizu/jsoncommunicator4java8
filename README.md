@@ -55,7 +55,7 @@ client.send(pojo);
 - Add listener for receive JSON
 
 ```
-client.addJsonReceivedListener((String json) -> {
+client.addJsonReceiveListener((String json) -> {
     /* something ... */
 });
 ```
@@ -63,7 +63,7 @@ client.addJsonReceivedListener((String json) -> {
 - Add listener for receive parsed POJO
 
 ```
-client.addPojoReceivedListener((Pojo pojo) -> {
+client.addPojoReceiveListener((Pojo pojo) -> {
     /* something ... */
 });
 ```

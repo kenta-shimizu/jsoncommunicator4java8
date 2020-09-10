@@ -36,7 +36,7 @@ public class Example4 {
 				JsonCommunicator<?> server = JsonCommunicators.openServer(addr);
 				) {
 			
-			server.addConnectionStateChangedListener((channel, state) -> {
+			server.addConnectionStateChangeListener((channel, state) -> {
 				
 				switch ( state ) {
 				case CONNECTED: {
@@ -76,7 +76,7 @@ public class Example4 {
 					JsonCommunicator<Example4> client = JsonCommunicators.openClient(addr, Example4.class);
 					) {
 				
-				client.addPojoReceivedListener(pojo -> {
+				client.addPojoReceiveListener(pojo -> {
 					System.out.println("receive: " + pojo);
 				});
 				

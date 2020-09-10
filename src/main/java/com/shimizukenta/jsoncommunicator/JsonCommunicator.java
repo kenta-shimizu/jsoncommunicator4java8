@@ -71,56 +71,56 @@ public interface JsonCommunicator<T> extends Closeable {
 	 * @param l
 	 * @return true if add success
 	 */
-	public boolean addJsonReceivedListener(JsonCommunicatorJsonReceivedListener l);
+	public boolean addJsonReceiveListener(JsonCommunicatorJsonReceiveListener l);
 	
 	/**
 	 * 
 	 * @param l
 	 * @return true if remove success
 	 */
-	public boolean removeJsonReceivedListener(JsonCommunicatorJsonReceivedListener l);
+	public boolean removeJsonReceiveListener(JsonCommunicatorJsonReceiveListener l);
 	
 	/**
 	 * 
 	 * @param l
 	 * @return true if add success
 	 */
-	public boolean addJsonReceivedListener(JsonCommunicatorJsonReceivedBiListener l);
+	public boolean addJsonReceiveListener(JsonCommunicatorJsonReceiveBiListener l);
 	
 	/**
 	 * 
 	 * @param l
 	 * @return true if remove success
 	 */
-	public boolean removeJsonReceivedListener(JsonCommunicatorJsonReceivedBiListener l);
+	public boolean removeJsonReceiveListener(JsonCommunicatorJsonReceiveBiListener l);
 	
 	/**
 	 * 
 	 * @param l
 	 * @return true if add success
 	 */
-	public boolean addPojoReceivedListener(JsonCommunicatorPojoReceivedListener<T> l);
+	public boolean addPojoReceiveListener(JsonCommunicatorPojoReceiveListener<T> l);
 	
 	/**
 	 * 
 	 * @param l
 	 * @return true if remove success
 	 */
-	public boolean removePojoReceivedListener(JsonCommunicatorPojoReceivedListener<T> l);
+	public boolean removePojoReceiveListener(JsonCommunicatorPojoReceiveListener<T> l);
 	
 	/**
 	 * 
 	 * @param l
 	 * @return true if add success
 	 */
-	public boolean addPojoReceivedListener(JsonCommunicatorPojoReceivedBiListener<T> l);
+	public boolean addPojoReceiveListener(JsonCommunicatorPojoReceiveBiListener<T> l);
 	
 	/**
 	 * 
 	 * @param l
 	 * @return true if remove success
 	 */
-	public boolean removePojoReceivedListener(JsonCommunicatorPojoReceivedBiListener<T> l);
+	public boolean removePojoReceiveListener(JsonCommunicatorPojoReceiveBiListener<T> l);
 	
 	/**
 	 * This listener is blocking.<br />
@@ -129,14 +129,14 @@ public interface JsonCommunicator<T> extends Closeable {
 	 * @param l
 	 * @return true if add success.
 	 */
-	public boolean addConnectionStateChangedListener(JsonCommunicatorConnectionStateChangedListener l);
+	public boolean addConnectionStateChangeListener(JsonCommunicatorConnectionStateChangeListener l);
 	
 	/**
 	 * 
 	 * @param l
 	 * @return true if remove success
 	 */
-	public boolean removeConnectionStateChangedListener(JsonCommunicatorConnectionStateChangedListener l);
+	public boolean removeConnectionStateChangeListener(JsonCommunicatorConnectionStateChangeListener l);
 	
 	/**
 	 * This listener is blocking.<br />
@@ -145,14 +145,14 @@ public interface JsonCommunicator<T> extends Closeable {
 	 * @param l
 	 * @return true if add success.
 	 */
-	public boolean addConnectionStateChangedListener(JsonCommunicatorConnectionStateChangedBiListener l);
+	public boolean addConnectionStateChangeListener(JsonCommunicatorConnectionStateChangeBiListener l);
 	
 	/**
 	 * 
 	 * @param l
 	 * @return true if remove success
 	 */
-	public boolean removeConnectionStateChangedListener(JsonCommunicatorConnectionStateChangedBiListener l);
+	public boolean removeConnectionStateChangeListener(JsonCommunicatorConnectionStateChangeBiListener l);
 	
 	/**
 	 * 
