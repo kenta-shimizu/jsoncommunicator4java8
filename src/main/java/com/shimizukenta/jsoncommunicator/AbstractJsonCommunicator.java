@@ -54,7 +54,7 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 	@Override
 	public boolean isOpen() {
 		synchronized ( this ) {
-			return this.opened;
+			return this.opened && ! this.closed;
 		}
 	}
 	
