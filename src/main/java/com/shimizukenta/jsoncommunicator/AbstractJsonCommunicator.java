@@ -533,23 +533,23 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 		notifyLog("receive", p);
 	}
 	
-	private final Collection<JsonCommunicatorPojoReceiveListener<T>> recvPojoLstnrs = new CopyOnWriteArrayList<>();
+	private final Collection<JsonCommunicatorPojoReceiveListener<? super T>> recvPojoLstnrs = new CopyOnWriteArrayList<>();
 	
-	public boolean addPojoReceiveListener(JsonCommunicatorPojoReceiveListener<T> l) {
+	public boolean addPojoReceiveListener(JsonCommunicatorPojoReceiveListener<? super T> l) {
 		return recvPojoLstnrs.add(Objects.requireNonNull(l));
 	}
 	
-	public boolean removePojoReceiveListener(JsonCommunicatorPojoReceiveListener<T> l) {
+	public boolean removePojoReceiveListener(JsonCommunicatorPojoReceiveListener<? super T> l) {
 		return recvPojoLstnrs.remove(Objects.requireNonNull(l));
 	}
 	
-	private final Collection<JsonCommunicatorPojoReceiveBiListener<T>> recvPojoBiLstnrs = new CopyOnWriteArrayList<>();
+	private final Collection<JsonCommunicatorPojoReceiveBiListener<? super T>> recvPojoBiLstnrs = new CopyOnWriteArrayList<>();
 	
-	public boolean addPojoReceiveListener(JsonCommunicatorPojoReceiveBiListener<T> l) {
+	public boolean addPojoReceiveListener(JsonCommunicatorPojoReceiveBiListener<? super T> l) {
 		return recvPojoBiLstnrs.add(Objects.requireNonNull(l));
 	}
 	
-	public boolean removePojoReceiveListener(JsonCommunicatorPojoReceiveBiListener<T> l) {
+	public boolean removePojoReceiveListener(JsonCommunicatorPojoReceiveBiListener<? super T> l) {
 		return recvPojoBiLstnrs.remove(Objects.requireNonNull(l));
 	}
 	
@@ -634,7 +634,7 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 		return createLoopTask(() -> {
 			JsonCommunicatorLog log = logQueue.take();
 			logLstnrs.forEach(l -> {
-				l.receive(log);
+				l.received(log);
 			});
 		});
 	}

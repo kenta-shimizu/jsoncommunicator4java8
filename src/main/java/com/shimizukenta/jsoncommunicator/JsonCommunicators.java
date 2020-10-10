@@ -3,6 +3,35 @@ package com.shimizukenta.jsoncommunicator;
 import java.io.IOException;
 import java.net.SocketAddress;
 
+/**
+ * This class is communicator instance builder.
+ * 
+ * <p>
+ * To get client instance,
+ * {@link #createClient(SocketAddress)}
+ * or {@link #createClient(SocketAddress, Class)}.<br />
+ * To get server instance,
+ * {@link #createServer(SocketAddress)}
+ * or {@link #createServer(SocketAddress, Class)}.<br />
+ * To get complex instance,
+ * {@link #newInstance(JsonCommunicatorConfig)}
+ * or {@link #newInstance(JsonCommunicatorConfig, Class)}.<br />
+ * </p>
+ * <p>
+ * To create client instance and open,
+ * {@link #openClient(SocketAddress)}
+ * or {@link #openClient(SocketAddress, Class)}.<br />
+ * To create server instance and open,
+ * {@link #openServer(SocketAddress)}
+ * or {@link #openServer(SocketAddress, Class)}.<Br />
+ * To create complex instance and open,
+ * {@link #open(JsonCommunicatorConfig)}
+ * or {@link #open(JsonCommunicatorConfig, Class)}.<br />
+ * </p>
+ * 
+ * @author kenta-shimizu
+ *
+ */
 public final class JsonCommunicators {
 
 	private JsonCommunicators() {
@@ -10,9 +39,9 @@ public final class JsonCommunicators {
 	}
 	
 	/**
-	 * create JsonCommunicator instance for Server<br />
+	 * Create JsonCommunicator instance for Server.
 	 * 
-	 * @param addr
+	 * @param addr binding SocketAddress
 	 * @return JsonCommunicator<?> instance
 	 */
 	public static JsonCommunicator<?> createServer(SocketAddress addr) {
@@ -22,12 +51,12 @@ public final class JsonCommunicators {
 	}
 	
 	/**
-	 * create JsonCommunicator instance for Server<br />
-	 * this instance can parse to class of T POJO<br />
+	 * Create JsonCommunicator instance for Server,
+	 * this instance can parse to class of T POJO.
 	 * 
 	 * @param <T>
-	 * @param addr
-	 * @param classOfT
+	 * @param addr binding SocketAddress
+	 * @param classOfT to parsing POJO
 	 * @return JsonCommunicator<T> instance
 	 */
 	public static <T> JsonCommunicator<T> createServer(SocketAddress addr, Class<T> classOfT) {
@@ -37,9 +66,9 @@ public final class JsonCommunicators {
 	}
 	
 	/**
-	 * create and open JsonCommunicator instance for Server<br />
+	 * Create and open JsonCommunicator instance for Server.
 	 * 
-	 * @param addr
+	 * @param addr binding SocketAddress
 	 * @return JsonCommunicator<?> instance
 	 * @throws IOException
 	 */
@@ -50,12 +79,12 @@ public final class JsonCommunicators {
 	}
 	
 	/**
-	 * create and open JsonCommunicator instance for Server<br />
-	 * this instance can parse to class of T POJO<br />
+	 * Create and open JsonCommunicator instance for Server,
+	 * this instance can parse to class of T POJO.
 	 * 
 	 * @param <T>
-	 * @param addr
-	 * @param classOfT
+	 * @param addr binding SocketAddress
+	 * @param classOfT to parsing POJO
 	 * @return JsonCommunicator<T> instance
 	 * @throws IOException
 	 */
@@ -66,9 +95,9 @@ public final class JsonCommunicators {
 	}
 	
 	/**
-	 * create JsonCommunicator instance for Client<br />
+	 * Create JsonCommunicator instance for Client.
 	 * 
-	 * @param addr
+	 * @param addr connecting SocketAddress
 	 * @return JsonCommunicator<?> instance
 	 */
 	public static JsonCommunicator<?> createClient(SocketAddress addr) {
@@ -78,12 +107,12 @@ public final class JsonCommunicators {
 	}
 	
 	/**
-	 * create JsonCommunicator instance for Client<br />
-	 * this instance can parse to class of T POJO<br />
+	 * Create JsonCommunicator instance for Client,
+	 * this instance can parse to class of T POJO.
 	 * 
 	 * @param <T>
-	 * @param addr
-	 * @param classOfT
+	 * @param addr connecting SocketAddress
+	 * @param classOfT to parsing POJO
 	 * @return JsonCommunicator<T> instance
 	 */
 	public static <T> JsonCommunicator<T> createClient(SocketAddress addr, Class<T> classOfT) {
@@ -93,10 +122,10 @@ public final class JsonCommunicators {
 	}
 	
 	/**
-	 * create and open JsonCommunicator instance for Client<br />
+	 * Create and open JsonCommunicator instance for Client.
 	 * 
-	 * @param addr
-	 * @return
+	 * @param addr connecting SocketAddress
+	 * @return JsonCommunicator<?> instance
 	 * @throws IOException
 	 */
 	public static JsonCommunicator<?> openClient(SocketAddress addr) throws IOException {
@@ -106,12 +135,12 @@ public final class JsonCommunicators {
 	}
 	
 	/**
-	 * create and open JsonCommunicator instance for Client<br />
-	 * this instance can parse to class of T POJO<br />
+	 * Create and open JsonCommunicator instance for Client,
+	 * this instance can parse to class of T POJO.
 	 * 
 	 * @param <T>
-	 * @param addr
-	 * @param classOfT
+	 * @param addr connecting SocketAddress
+	 * @param classOfT to parsing POJO
 	 * @return JsonCommunicator<T> instance
 	 * @throws IOException
 	 */
@@ -122,7 +151,7 @@ public final class JsonCommunicators {
 	}
 	
 	/**
-	 * create JsonCommunicator by JsonCommunicatorConfig
+	 * Create JsonCommunicator by JsonCommunicatorConfig.
 	 * 
 	 * @param config
 	 * @return JsonCommunicator<?> instance
@@ -132,12 +161,12 @@ public final class JsonCommunicators {
 	}
 	
 	/**
-	 * create JsonCommunicator by JsonCommunicatorConfig
-	 * this instance can parse to class of T POJO<br />
+	 * Create JsonCommunicator by JsonCommunicatorConfig,
+	 * this instance can parse to class of T POJO.
 	 * 
 	 * @param <T>
 	 * @param config
-	 * @param classOfT
+	 * @param classOfT to parsing POJO
 	 * @return JsonCommunicator<T> instance
 	 */
 	public static <T> JsonCommunicator<T> newInstance(JsonCommunicatorConfig config, Class<T> classOfT) {
@@ -145,7 +174,7 @@ public final class JsonCommunicators {
 	}
 	
 	/**
-	 * create and open JsonCommunicator by JsonCommunicatorConfig
+	 * Create and open JsonCommunicator by JsonCommunicatorConfig.
 	 * 
 	 * @param config
 	 * @return JsonCommunicator<?> instance
@@ -158,12 +187,12 @@ public final class JsonCommunicators {
 	}
 	
 	/**
-	 * create and open JsonCommunicator by JsonCommunicatorConfig
-	 * this instance can parse to class of T POJO<br />
+	 * Create and open JsonCommunicator by JsonCommunicatorConfig,
+	 * this instance can parse to class of T POJO.
 	 * 
 	 * @param <T>
 	 * @param config
-	 * @param classOfT
+	 * @param classOfT to parsing POJO
 	 * @return JsonCommunicator<T> instance
 	 * @throws IOException
 	 */

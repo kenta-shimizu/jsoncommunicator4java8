@@ -9,6 +9,24 @@ import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * This class is JsonCommunicator Log, includes Subject, Timestamp, Detail-Information.
+ * 
+ * <p>
+ * To get Subject, {@link #subject()}.<br />
+ * To get Timestamp, {@link #timestamp()}.<br />
+ * To get defail-information, {@link #timestamp()}.<br />
+ * </p>
+ * <p>
+ * This log instance get from {@link JsonCommunicator#addLogListener(JsonCommunicatorLogListener)}.<br />
+ * </p>
+ * <p>
+ * Instances of this class are immutable.<br />
+ * </p>
+ * 
+ * @author kenta-shimizu
+ *
+ */
 public class JsonCommunicatorLog implements Serializable {
 	
 	private static final long serialVersionUID = 3168528785591981508L;
@@ -40,14 +58,29 @@ public class JsonCommunicatorLog implements Serializable {
 		this(createThrowableSubject(t), t);
 	}
 	
+	/**
+	 * Returns Log-subject.
+	 * 
+	 * @return Log-subject
+	 */
 	public String subject() {
 		return subject;
 	}
 	
+	/**
+	 * Returns Log-timestamp.
+	 * 
+	 * @return Log-timestamp
+	 */
 	public LocalDateTime timestamp() {
 		return timestamp;
 	}
 	
+	/**
+	 * Returns Log-defail-information.
+	 * 
+	 * @return value if exist, and {@code Optional.empty()} otherwise
+	 */
 	public Optional<Object> value() {
 		return value == null ? Optional.empty() : Optional.of(value);
 	}
