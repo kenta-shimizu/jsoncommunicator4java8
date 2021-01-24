@@ -105,6 +105,10 @@ public class JsonHubFromPojoParser {
 			
 			return jhb.array(ll);
 			
+		} else if ( pojo instanceof AbstractJsonHub ) {
+			
+			return (AbstractJsonHub)pojo;
+			
 		} else if ( pojo instanceof Boolean ) {
 			
 			return jhb.build(((Boolean)pojo).booleanValue());
