@@ -7,6 +7,7 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.CompletionHandler;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -142,7 +143,7 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 			notifyLog("server-binded", addr);
 			
 			server.accept(null, new CompletionHandler<AsynchronousSocketChannel, Void>() {
-
+				
 				@Override
 				public void completed(AsynchronousSocketChannel channel, Void attachment) {
 					
@@ -183,7 +184,11 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 
 				@Override
 				public void failed(Throwable t, Void attachment) {
-					notifyLog(t);
+					
+					if ( ! (t instanceof ClosedChannelException) ) {
+						notifyLog(t);
+					}
+					
 					synchronized ( server ) {
 						server.notifyAll();
 					}
@@ -229,7 +234,6 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 					finally {
 						
 						channels.remove(channel);
-						notifyLog("channel-disconnected", channelStr);
 						
 						try {
 							channel.shutdownOutput();
@@ -239,15 +243,21 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 						
 						stateChanged(channel, JsonCommunicatorConnectionState.NOT_CONNECTED);
 						
+						notifyLog("channel-disconnected", channelStr);
+						
 						synchronized ( channel ) {
 							channel.notifyAll();
 						}
 					}
 				}
-
+				
 				@Override
 				public void failed(Throwable t, Void attachment) {
-					notifyLog(t);
+					
+					if ( ! (t instanceof ClosedChannelException) ) {
+						notifyLog(t);
+					}
+					
 					synchronized ( channel ) {
 						channel.notifyAll();
 					}
@@ -265,22 +275,31 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 	
 	private void reading(AsynchronousSocketChannel channel) throws InterruptedException {
 		
-		final Collection<Callable<Object>> tasks = Arrays.asList(createReadingTask(channel));
+		final Collection<Callable<Void>> tasks = Arrays.asList(createReadingTask(channel));
 		
 		try {
 			execServ.invokeAny(tasks);
 		}
 		catch ( ExecutionException e ) {
-			notifyLog(e.getCause());
+			
+			Throwable t = e.getCause();
+			
+			if ( t instanceof RuntimeException ) {
+				throw (RuntimeException)t;
+			}
+			
+			if ( ! (t instanceof ClosedChannelException) ) {
+				notifyLog(t);
+			}
 		}
 	}
 	
-	private Callable<Object> createReadingTask(AsynchronousSocketChannel channel) {
+	private Callable<Void> createReadingTask(AsynchronousSocketChannel channel) {
 		
-		return new Callable<Object>() {
+		return new Callable<Void>() {
 			
 			@Override
-			public Object call() throws Exception {
+			public Void call() throws Exception {
 				
 				try (
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -298,7 +317,7 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 							int r = f.get().intValue();
 							
 							if ( r < 0 ) {
-								return null;
+								break;
 							}
 							
 							((Buffer)buffer).flip();
@@ -314,20 +333,23 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 								}
 							}
 						}
-						catch ( ExecutionException e ) {
-							notifyLog(e.getCause());
-							return null;
-						}
 						catch ( InterruptedException e ) {
 							f.cancel(true);
 							throw e;
 						}
 					}
 				}
-				catch ( IOException e ) {
-					notifyLog(e);
-				}
 				catch ( InterruptedException ignore ) {
+				}
+				catch ( ExecutionException e ) {
+					
+					Throwable t = e.getCause();
+					
+					if ( ! (t instanceof ClosedChannelException) ) {
+						if ( t instanceof Exception ) {
+							throw (Exception)t;
+						}
+					}
 				}
 				
 				return null;
@@ -400,8 +422,15 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 				notifyLog(e);
 			}
 			catch ( ExecutionException e ) {
+				
 				Throwable t = e.getCause();
+				
+				if ( t instanceof RuntimeException ) {
+					throw (RuntimeException)t;
+				}
+				
 				notifyLog(t);
+				
 				if ( t instanceof IOException ) {
 					ioExcept = (IOException)t;
 				}
@@ -437,25 +466,26 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 							int w = f.get().intValue();
 							
 							if ( w <= 0 ) {
-								return channel;
+								break;
 							}
 						}
 						catch ( InterruptedException e ) {
 							f.cancel(true);
 							throw e;
 						}
-						catch ( ExecutionException e ) {
-							Throwable t = e.getCause();
-							if (t instanceof Exception) {
-								throw (Exception)t;
-							} else {
-								notifyLog(t);
-								return channel;
-							}
-						}
 					}
 				}
 				catch ( InterruptedException ignore ) {
+				}
+				catch ( ExecutionException e ) {
+					
+					Throwable t = e.getCause();
+					
+					if (! (t instanceof ClosedChannelException) ) {
+						if ( t instanceof Exception ) {
+							throw (Exception)t;
+						}
+					}
 				}
 				
 				return channel;
@@ -682,7 +712,9 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 	}
 	
 	protected static Runnable createLoopTask(InterruptableRunnable r) {
+		
 		return new Runnable() {
+			
 			@Override
 			public void run() {
 				try {
