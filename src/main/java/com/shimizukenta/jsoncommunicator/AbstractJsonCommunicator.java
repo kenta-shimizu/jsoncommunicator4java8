@@ -288,9 +288,7 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 				throw (RuntimeException)t;
 			}
 			
-			if ( ! (t instanceof ClosedChannelException) ) {
-				notifyLog(t);
-			}
+			notifyLog(t);
 		}
 	}
 	
