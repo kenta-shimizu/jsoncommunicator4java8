@@ -118,12 +118,9 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 		}
 		
 		try {
-			execServ.shutdown();
-			if ( ! execServ.awaitTermination(1L, TimeUnit.MILLISECONDS) ) {
-				execServ.shutdownNow();
-				if ( ! execServ.awaitTermination(5L, TimeUnit.SECONDS) ) {
-					throw new IOException("ExecutorService#shutdown failed");
-				}
+			execServ.shutdownNow();
+			if ( ! execServ.awaitTermination(5L, TimeUnit.SECONDS) ) {
+				throw new IOException("ExecutorService#shutdown failed");
 			}
 		}
 		catch ( InterruptedException giveup ) {
