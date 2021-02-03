@@ -15,6 +15,7 @@ public class TestComm {
 	public int num;
 	public String str;
 	public boolean bool;
+	public Object nul;
 //	public Object[] array;
 	public String[] array;
 	
@@ -22,6 +23,7 @@ public class TestComm {
 		num = 0;
 		str = "str";
 		bool = true;
+		nul = null;
 //		array = new Object[] {"AAA", Integer.valueOf(100), Boolean.TRUE, null};
 		array = new String[] {"AAA", "BBB", "CCC"};
 	}
@@ -60,7 +62,7 @@ public class TestComm {
 				
 				client.send(new TestComm());
 				
-				Thread.sleep(1000L);
+				Thread.sleep(500L);
 			}
 		}
 		catch ( Throwable t ) {

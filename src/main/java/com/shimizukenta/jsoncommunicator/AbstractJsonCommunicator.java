@@ -29,11 +29,10 @@ import java.util.stream.Collectors;
 public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T> {
 	
 	protected static final byte DELIMITER = (byte)0x0;
-	protected static final String BR = System.lineSeparator();
 	
 	private final ExecutorService execServ = Executors.newCachedThreadPool(r -> {
 		Thread th = new Thread(r);
-		th.setDaemon(true);
+		th.setDaemon(false);
 		return th;
 	});
 	
@@ -135,9 +134,11 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 				AsynchronousServerSocketChannel server = AsynchronousServerSocketChannel.open();
 				) {
 			
+			notifyLog(SimpleJsonCommunicatorServerBindLog.tryBind(addr));
+			
 			server.bind(addr);
 			
-			notifyLog("server-binded", addr);
+			notifyLog(SimpleJsonCommunicatorServerBindLog.binded(addr));
 			
 			server.accept(null, new CompletionHandler<AsynchronousSocketChannel, Void>() {
 				
@@ -146,14 +147,22 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 					
 					server.accept(null, this);
 					
-					final String channelStr = channel.toString();
+					SocketAddress local = null;
+					SocketAddress remote = null;
 					
 					try {
 						channels.add(channel);
-						notifyLog("channel-accepted", channelStr);
+						
+						local = channel.getLocalAddress();
+						remote = channel.getRemoteAddress();
+						
+						notifyLog(SimpleJsonCommunicatorConnectionLog.accepted(local, remote));
+						
 						stateChanged(channel, JsonCommunicatorConnectionState.CONNECTED);
 						
 						reading(channel);
+					}
+					catch ( IOException giveup ) {
 					}
 					catch ( InterruptedException ignore ) {
 					}
@@ -174,11 +183,12 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 							notifyLog(e);
 						}
 						
-						notifyLog("channel-closed", channelStr);
 						stateChanged(channel, JsonCommunicatorConnectionState.NOT_CONNECTED);
+						
+						notifyLog(SimpleJsonCommunicatorConnectionLog.closed(local, remote));
 					}
 				}
-
+				
 				@Override
 				public void failed(Throwable t, Void attachment) {
 					
@@ -200,7 +210,7 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 			notifyLog(e);
 		}
 		finally {
-			notifyLog("server-closed", addr);
+			notifyLog(SimpleJsonCommunicatorServerBindLog.closed(addr));
 		}
 	}
 	
@@ -210,21 +220,29 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 				AsynchronousSocketChannel channel = AsynchronousSocketChannel.open();
 				) {
 			
-			notifyLog("try-connect", addr);
+			notifyLog(SimpleJsonCommunicatorConnectionLog.tryConnect(addr));
 			
 			channel.connect(addr, null, new CompletionHandler<Void, Void>() {
 
 				@Override
 				public void completed(Void result, Void attachment) {
 					
-					final String channelStr = channel.toString();
+					SocketAddress local = null;
+					SocketAddress remote = null;
 					
 					try {
 						channels.add(channel);
-						notifyLog("channel-connected", channelStr);
+						
 						stateChanged(channel, JsonCommunicatorConnectionState.CONNECTED);
 						
+						local = channel.getLocalAddress();
+						remote = channel.getRemoteAddress();
+						
+						notifyLog(SimpleJsonCommunicatorConnectionLog.connected(local, remote));
+						
 						reading(channel);
+					}
+					catch ( IOException giveup ) {
 					}
 					catch ( InterruptedException ignore ) {
 					}
@@ -240,8 +258,8 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 						
 						stateChanged(channel, JsonCommunicatorConnectionState.NOT_CONNECTED);
 						
-						notifyLog("channel-disconnected", channelStr);
-						
+						notifyLog(SimpleJsonCommunicatorConnectionLog.closed(local, remote));
+
 						synchronized ( channel ) {
 							channel.notifyAll();
 						}
@@ -318,12 +336,17 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 							((Buffer)buffer).flip();
 							
 							while ( buffer.hasRemaining() ) {
+								
 								byte b = buffer.get();
+								
 								if ( b == DELIMITER ) {
+									
 									byte[] bs = baos.toByteArray();
 									putReceivedBytes(channel, bs);
 									baos.reset();
+									
 								} else {
+									
 									baos.write(b);
 								}
 							}
@@ -404,14 +427,13 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 		
 		IOException ioExcept = null;
 		
-		List<String> toAddrs = new ArrayList<>();
+		List<SocketAddress> toAddrs = new ArrayList<>();
 		
 		for ( Future<AsynchronousSocketChannel> f : results ) {
 			
 			try {
 				AsynchronousSocketChannel ch = f.get();
-				String toAddr = ch.getRemoteAddress().toString();
-				toAddrs.add(toAddr);
+				toAddrs.add(ch.getRemoteAddress());
 			}
 			catch ( IOException e ) {
 				notifyLog(e);
@@ -432,8 +454,7 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 			}
 		}
 		
-		String logValue = "to [" + toAddrs.stream().collect(Collectors.joining(", ")) + "]" + BR + String.valueOf(toLog);
-		notifyLog("sended", logValue);
+		notifySendJsonLog(toLog.toString(), toAddrs);
 		
 		if ( ioExcept != null ) {
 			throw ioExcept;
@@ -488,6 +509,16 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 		};
 	}
 	
+	private static final String subjectSendJson = "Sended-JSON";
+	
+	private void notifySendJsonLog(CharSequence json, List<SocketAddress> toAddrs) {
+		
+		notifyLog(new AbstractJsonCommunicatorSendJsonLog(subjectSendJson, json, toAddrs) {
+
+			private static final long serialVersionUID = -1598027910284008481L;
+		});
+	}
+	
 	abstract protected byte[] createBytesFromPojo(Object pojo) throws JsonCommunicatorParseException;
 	
 	
@@ -516,21 +547,13 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 	}
 	
 	private class RecvJsonPack {
+		
 		private final AsynchronousSocketChannel channel;
 		private final String json;
+		
 		private RecvJsonPack(AsynchronousSocketChannel channel, String json) {
 			this.channel = channel;
 			this.json = json;
-		}
-		
-		@Override
-		public String toString() {
-			try {
-				return "from " + channel.getRemoteAddress().toString() + BR + json;
-			}
-			catch ( IOException giveup) {
-				return json;
-			}
 		}
 	}
 	
@@ -555,7 +578,24 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 	protected void receiveJson(AsynchronousSocketChannel channel, String json) {
 		RecvJsonPack p = new RecvJsonPack(channel, json);
 		offerRecvJsonPackQueue(p);
-		notifyLog("receive", p);
+		notifyReceiveJsonLog(p);
+	}
+	
+	private static final String subjectReceiveJson = "Receive-JSON";
+	
+	private void notifyReceiveJsonLog(RecvJsonPack p) {
+		
+		try {
+			SocketAddress local = p.channel.getLocalAddress();
+			SocketAddress remote = p.channel.getRemoteAddress();
+			
+			notifyLog(new AbstractJsonCommunicatorReceiveJsonLog(subjectReceiveJson, p.json, local, remote) {
+				
+				private static final long serialVersionUID = 4856578022712191825L;
+			});
+		}
+		catch ( IOException giveup ) {
+		}
 	}
 	
 	private final Collection<JsonCommunicatorPojoReceiveListener<? super T>> recvPojoLstnrs = new CopyOnWriteArrayList<>();
@@ -656,51 +696,56 @@ public abstract class AbstractJsonCommunicator<T> implements JsonCommunicator<T>
 	private final BlockingQueue<JsonCommunicatorLog> logQueue = new LinkedBlockingQueue<>();
 	
 	private Runnable createLogTask() {
-		return createLoopTask(() -> {
-			JsonCommunicatorLog log = logQueue.take();
-			logLstnrs.forEach(l -> {
-				l.received(log);
-			});
-		});
+		
+		return new Runnable() {
+
+			@Override
+			public void run() {
+				
+				try {
+					for ( ;; ) {
+						final JsonCommunicatorLog log = logQueue.take();
+						logLstnrs.forEach(l -> {
+							l.received(log);
+						});
+					}
+				}
+				catch ( InterruptedException ignore ) {
+				}
+				
+				try {
+					for ( ;; ) {
+						final JsonCommunicatorLog log = logQueue.poll(100L, TimeUnit.MILLISECONDS);
+						if ( log == null ) {
+							break;
+						}
+						logLstnrs.forEach(l -> {
+							l.received(log);
+						});
+					}
+				}
+				catch ( InterruptedException ignore ) {
+				}
+			}
+		};
 	}
 	
-	protected final boolean offerLogQueue(JsonCommunicatorLog log) {
+	protected final boolean offerLogQueue(AbstractJsonCommunicatorLog log) {
 		return logQueue.offer(log);
 	}
 	
-	protected void notifyLog(JsonCommunicatorLog log) {
-		offerLogQueue(new JsonCommunicatorLog(
-				createLogSubject(log.subject()),
-				log.timestamp(),
-				log.value().orElse(null)));
+	protected void notifyLog(AbstractJsonCommunicatorLog log) {
+		config.logSubjectHeader().ifPresent(log::subjectHeader);
+		offerLogQueue(log);
 	}
 	
-	protected void notifyLog(CharSequence subject) {
-		offerLogQueue(new JsonCommunicatorLog(createLogSubject(subject)));
+	protected void notifyLog(Throwable cause) {
+		notifyLog(new AbstractJsonCommunicatorThrowableLog(cause) {
+
+			private static final long serialVersionUID = -4710635971309923125L;
+		});
 	}
 	
-	protected void notifyLog(CharSequence subject, Object value) {
-		offerLogQueue(new JsonCommunicatorLog(
-				createLogSubject(subject),
-				value));
-	}
-	
-	protected void notifyLog(Throwable t) {
-		offerLogQueue(new JsonCommunicatorLog(
-				createLogSubject(JsonCommunicatorLog.createThrowableSubject(t)),
-				t));
-	}
-	
-	private String createLogSubject(CharSequence subject) {
-		if ( subject == null ) {
-			return "No-subject";
-		} else {
-			String s = subject.toString();
-			return config.logSubjectHeader()
-					.map(h -> h + s)
-					.orElse(s);
-		}
-	}
 	
 	protected static interface InterruptableRunnable {
 		public void run() throws InterruptedException;
