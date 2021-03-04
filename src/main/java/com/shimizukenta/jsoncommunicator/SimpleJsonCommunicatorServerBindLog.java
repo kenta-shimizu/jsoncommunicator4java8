@@ -10,7 +10,7 @@ public final class SimpleJsonCommunicatorServerBindLog extends AbstractJsonCommu
 		super(subject, addr, isBinded, isClosed);
 	}
 	
-	private static final String commonTryBind = "server-Try-Bind";
+	private static final String commonTryBind = "Server-Try-Bind";
 	
 	public static SimpleJsonCommunicatorServerBindLog tryBind(SocketAddress addr) {
 		return new SimpleJsonCommunicatorServerBindLog(commonTryBind, addr, false, false);
